@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodFlow - Task Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .rotate-12 { transform: rotate(12deg); }
+        .transition-all { transition: all 0.3s ease; }
+        .hover-scale:hover { transform: scale(1.02); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .task-card { animation: slideIn 0.3s ease; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center gap-3 mb-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center rotate-12 shadow-lg">
+                    <span class="text-white text-2xl">❤️</span>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    MoodFlow
+                </h1>
+            </div>
+            <p class="text-gray-600 text-lg">Match tasks with your mood & energy! 🌈</p>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-2xl p-4 shadow-lg border-2 border-purple-200">
+                <div class="text-3xl font-bold text-purple-600" id="totalTasks">0</div>
+                <div class="text-sm text-gray-600">Total Tasks</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-lg border-2 border-blue-200">
+                <div class="text-3xl font-bold text-blue-600" id="inProgressTasks">0</div>
+                <div class="text-sm text-gray-600">In Progress</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-lg border-2 border-green-200">
+                <div class="text-3xl font-bold text-green-600" id="completedTasks">0</div>
+                <div class="text-sm text-gray-600">Completed</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-lg border-2 border-orange-200">
+                <div class="text-3xl font-bold text-orange-600" id="timeSpent">0m</div>
+                <div class="text-sm text-gray-600">Time Spent</div>
+            </div>
+        </div>
+
+        <!-- View Toggle -->
+        <div class="flex justify-center gap-3 mb-8">
+            <button onclick="switchView('kanban')" id="kanbanBtn" class="px-6 py-3 rounded-xl font-semibold transition-all bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg">
+                📊 Kanban View
+            </button>
+            <button onclick="switchView('mood')" id="moodBtn" class="px-6 py-3 rounded-xl font-semibold transition-all bg-white text-gray-600 hover:shadow-md">
+                😊 Mood View
+            </button>
+        </div>
+
+        <!-- Add Task Section -->
+        <div class="bg-white rounded-3xl shadow-2xl p-6 mb-8 border-2 border-purple-200">
+            <h3 class="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                <span>➕</span>
+                Add New Task
+            </h3>
+            
+            <div class="space-y-4">
+                <input type="text" id="taskInput" placeholder="What needs to be done?" 
+                    class="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-purple-400 focus:outline-none text-lg">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block font-medium">Choose Your Mood</label>
+                        <select id="moodSelect" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 focus:outline-none">
+                            <option value="energetic">⚡ Energetic</option>
+                            <option value="focused">🧠 Focused</option>
+                            <option value="creative">🎨 Creative</option>
+                            <option value="relaxed">☕ Relaxed</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block font-medium">⏱️ Estimated Time</label>
+                        <select id="timeSelect" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 focus:outline-none">
+                            <option value="15">15 mins</option>
+                            <option value="30">30 mins</option>
+                            <option value="45">45 mins</option>
+                            <option value="60">1 hour</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block font-medium">📅 Due Date</label>
+                        <input type="date" id="dateInput" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 focus:outline-none">
+                    </div>
+
+                    <div class="flex items-end">
+                        <button onclick="addTask()" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-semibold hover:shadow-xl transition-all">
+                            ➕ Add Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kanban View -->
+        <div id="kanbanView" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white/50 backdrop-blur-sm rounded-3xl p-5 border-2 border-white shadow-lg">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-2xl">📋</span>
+                    <h3 class="font-bold text-lg text-gray-800">Backlog</h3>
+                    <span class="ml-auto bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold" id="backlogCount">0</span>
+                </div>
+                <div id="backlogTasks" class="space-y-3 min-h-[300px]"></div>
+            </div>
+
+            <div class="bg-white/50 backdrop-blur-sm rounded-3xl p-5 border-2 border-white shadow-lg">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-2xl">🚀</span>
+                    <h3 class="font-bold text-lg text-gray-800">In Progress</h3>
+                    <span class="ml-auto bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold" id="inProgressCount">0</span>
+                </div>
+                <div id="inProgressTasksList" class="space-y-3 min-h-[300px]"></div>
+            </div>
+
+            <div class="bg-white/50 backdrop-blur-sm rounded-3xl p-5 border-2 border-white shadow-lg">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-2xl">✅</span>
+                    <h3 class="font-bold text-lg text-gray-800">Completed</h3>
+                    <span class="ml-auto bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold" id="completedCount">0</span>
+                </div>
+                <div id="completedTasksList" class="space-y-3 min-h-[300px]"></div>
+            </div>
+        </div>
+
+        <!-- Mood View -->
+        <div id="moodView" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+            <div class="bg-yellow-50 rounded-3xl p-6 border-2 border-yellow-300 shadow-xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-2xl flex items-center justify-center shadow-lg">
+                        <span class="text-white text-xl">⚡</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-xl text-gray-800">⚡ Energetic</h3>
+                        <p class="text-sm text-gray-600">High energy tasks</p>
+                    </div>
+                    <span class="bg-white px-3 py-1 rounded-full text-sm font-bold text-yellow-700" id="energeticCount">0</span>
+                </div>
+                <div id="energeticTasks" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-blue-50 rounded-3xl p-6 border-2 border-blue-300 shadow-xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg">
+                        <span class="text-white text-xl">🧠</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-xl text-gray-800">🧠 Focused</h3>
+                        <p class="text-sm text-gray-600">Deep work required</p>
+                    </div>
+                    <span class="bg-white px-3 py-1 rounded-full text-sm font-bold text-blue-700" id="focusedCount">0</span>
+                </div>
+                <div id="focusedTasks" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-pink-50 rounded-3xl p-6 border-2 border-pink-300 shadow-xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
+                        <span class="text-white text-xl">🎨</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-xl text-gray-800">🎨 Creative</h3>
+                        <p class="text-sm text-gray-600">Creative tasks</p>
+                    </div>
+                    <span class="bg-white px-3 py-1 rounded-full text-sm font-bold text-pink-700" id="creativeCount">0</span>
+                </div>
+                <div id="creativeTasks" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-teal-50 rounded-3xl p-6 border-2 border-teal-300 shadow-xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-teal-400 to-green-500 rounded-2xl flex items-center justify-center shadow-lg">
+                        <span class="text-white text-xl">☕</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-xl text-gray-800">☕ Relaxed</h3>
+                        <p class="text-sm text-gray-600">Easy tasks</p>
+                    </div>
+                    <span class="bg-white px-3 py-1 rounded-full text-sm font-bold text-teal-700" id="relaxedCount">0</span>
+                </div>
+                <div id="relaxedTasks" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tasks = [];
+        let currentView = 'kanban';
+        let editingTaskId = null;
+
+        const moodConfig = {
+            energetic: { emoji: '⚡', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-300', textColor: 'text-yellow-700' },
+            focused: { emoji: '🧠', bgColor: 'bg-blue-50', borderColor: 'border-blue-300', textColor: 'text-blue-700' },
+            creative: { emoji: '🎨', bgColor: 'bg-pink-50', borderColor: 'border-pink-300', textColor: 'text-pink-700' },
+            relaxed: { emoji: '☕', bgColor: 'bg-teal-50', borderColor: 'border-teal-300', textColor: 'text-teal-700' }
+        };
+
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            const mood = document.getElementById('moodSelect').value;
+            const time = document.getElementById('timeSelect').value;
+            const date = document.getElementById('dateInput').value;
+
+            if (!input.value.trim()) {
+                alert('Please enter a task!');
+                return;
+            }
+
+            const task = {
+                id: Date.now(),
+                text: input.value.trim(),
+                mood: mood,
+                status: 'backlog',
+                estimatedTime: parseInt(time),
+                dueDate: date,
+                createdAt: new Date().toISOString()
+            };
+
+            tasks.unshift(task);
+            input.value = '';
+            document.getElementById('timeSelect').value = '15';
+            document.getElementById('dateInput').value = '';
+            
+            updateUI();
+        }
+
+        function deleteTask(id) {
+            if (confirm('Are you sure you want to delete this task?')) {
+                tasks = tasks.filter(t => t.id !== id);
+                updateUI();
+            }
+        }
+
+        function moveTask(id, newStatus) {
+            tasks = tasks.map(t => t.id === id ? {...t, status: newStatus} : t);
+            updateUI();
+        }
+
+        function startEdit(id) {
+            editingTaskId = id;
+            updateUI();
+        }
+
+        function saveEdit(id, newText) {
+            if (newText.trim()) {
+                tasks = tasks.map(t => t.id === id ? {...t, text: newText.trim()} : t);
+                editingTaskId = null;
+                updateUI();
+            }
+        }
+
+        function cancelEdit() {
+            editingTaskId = null;
+            updateUI();
+        }
+
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('kanbanView').classList.toggle('hidden', view !== 'kanban');
+            document.getElementById('moodView').classList.toggle('hidden', view !== 'mood');
+            
+            document.getElementById('kanbanBtn').className = view === 'kanban' 
+                ? 'px-6 py-3 rounded-xl font-semibold transition-all bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                : 'px-6 py-3 rounded-xl font-semibold transition-all bg-white text-gray-600 hover:shadow-md';
+            
+            document.getElementById('moodBtn').className = view === 'mood' 
+                ? 'px-6 py-3 rounded-xl font-semibold transition-all bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                : 'px-6 py-3 rounded-xl font-semibold transition-all bg-white text-gray-600 hover:shadow-md';
+            
+            updateUI();
+        }
+
+        function updateUI() {
+            updateStats();
+            if (currentView === 'kanban') {
+                updateKanbanView();
+            } else {
+                updateMoodView();
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalTasks').textContent = tasks.length;
+            document.getElementById('inProgressTasks').textContent = tasks.filter(t => t.status === 'inProgress').length;
+            document.getElementById('completedTasks').textContent = tasks.filter(t => t.status === 'completed').length;
+            
+            const timeSpent = tasks.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.estimatedTime, 0);
+            document.getElementById('timeSpent').textContent = timeSpent + 'm';
+        }
+
+        function updateKanbanView() {
+            ['backlog', 'inProgress', 'completed'].forEach(status => {
+                const container = document.getElementById(status === 'inProgress' ? 'inProgressTasksList' : status + 'Tasks');
+                const statusTasks = tasks.filter(t => t.status === status);
+                
+                document.getElementById(status === 'inProgress' ? 'inProgressCount' : status + 'Count').textContent = statusTasks.length;
+                
+                container.innerHTML = statusTasks.map(task => {
+                    const mood = moodConfig[task.mood];
+                    const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
+                    
+                    if (editingTaskId === task.id) {
+                        return `
+                            <div class="task-card ${mood.bgColor} rounded-2xl p-4 border-2 ${mood.borderColor}">
+                                <div class="flex gap-2">
+                                    <input type="text" id="editInput${task.id}" value="${task.text}" 
+                                        class="flex-1 px-3 py-2 rounded-lg border-2 border-gray-300 focus:border-purple-400 focus:outline-none">
+                                    <button onclick="saveEdit(${task.id}, document.getElementById('editInput${task.id}').value)" 
+                                        class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">✓</button>
+                                    <button onclick="cancelEdit()" 
+                                        class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">✗</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    return `
+                        <div class="task-card ${mood.bgColor} rounded-2xl p-4 border-2 ${mood.borderColor} hover:shadow-lg transition-all">
+                            <div class="flex items-start gap-2 mb-3">
+                                <span class="${mood.textColor} text-xl">${mood.emoji}</span>
+                                <p class="flex-1 font-medium text-gray-800">${task.text}</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-3 text-xs">
+                                <span class="bg-white px-2 py-1 rounded-full text-gray-600">⏱️ ${task.estimatedTime}m</span>
+                                ${task.dueDate ? `<span class="${isOverdue ? 'bg-red-500 text-white' : 'bg-white text-gray-600'} px-2 py-1 rounded-full">📅 ${new Date(task.dueDate).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</span>` : ''}
+                            </div>
+                            <div class="flex gap-2">
+                                ${status !== 'completed' ? `<button onclick="moveTask(${task.id}, '${status === 'backlog' ? 'inProgress' : 'completed'}')" class="flex-1 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:shadow-md transition-all">${status === 'backlog' ? 'Start' : 'Complete'} →</button>` : ''}
+                                ${status === 'completed' ? `<button onclick="moveTask(${task.id}, 'inProgress')" class="flex-1 bg-gradient-to-r from-blue-400 to-cyan-500 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:shadow-md transition-all">← Reopen</button>` : ''}
+                                <button onclick="startEdit(${task.id})" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">✏️</button>
+                                <button onclick="deleteTask(${task.id})" class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                if (statusTasks.length === 0) {
+                    container.innerHTML = '<p class="text-gray-400 text-center py-8">No tasks yet</p>';
+                }
+            });
+        }
+
+        function updateMoodView() {
+            Object.keys(moodConfig).forEach(mood => {
+                const moodTasks = tasks.filter(t => t.mood === mood && t.status !== 'completed');
+                document.getElementById(mood + 'Count').textContent = moodTasks.length;
+                
+                const container = document.getElementById(mood + 'Tasks');
+                container.innerHTML = moodTasks.length === 0 
+                    ? '<p class="text-gray-500 text-center py-8">No tasks for this mood yet!</p>'
+                    : moodTasks.map(task => `
+                        <div class="bg-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all">
+                            <p class="font-medium text-gray-800 mb-2">${task.text}</p>
+                            <div class="flex gap-2 text-xs">
+                                <span class="bg-gray-100 px-2 py-1 rounded-full">${task.status === 'backlog' ? '📋 Backlog' : '🚀 In Progress'}</span>
+                                <span class="bg-gray-100 px-2 py-1 rounded-full">${task.estimatedTime}m</span>
+                            </div>
+                        </div>
+                    `).join('');
+            });
+        }
+
+        // Enter key support
+        document.getElementById('taskInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addTask();
+        });
+
+        // Initialize
+        updateUI();
+    </script>
+</body>
+</html>
